@@ -17,10 +17,11 @@
 #include <signal.h>
 #include <curses.h>
 
-#define COLS 50 
+#define COLS 50
 #define ROWS 20
 
 bool grids[2][ROWS][COLS] = { false };
+bool paused = false;
 uint8_t gridIndex = 0;
 uint32_t delay = 100000;
 
@@ -28,7 +29,7 @@ void printActiveGrid() {
   uint8_t x,y;
 
   attron(COLOR_PAIR(1));
-  printw(" Conway's Game of Life\n");
+  printw(" Conway's Game of Life (delay: %d)\n", delay);
 
   attron(COLOR_PAIR(3));
   printw("+%*s+\n", COLS, "");
@@ -121,6 +122,10 @@ void calculateStep() {
 
 int main(int argc, char *argv[]) {
   initscr();
+  cbreak();
+  noecho();
+  timeout(1);
+
   if (has_colors() == false) {
     endwin();
     printf("Your terminal does not support color\n");
@@ -128,40 +133,47 @@ int main(int argc, char *argv[]) {
   }
   start_color();
   init_pair(1, COLOR_WHITE, COLOR_BLACK);
-  init_pair(2, COLOR_WHITE, COLOR_GREEN);
+  init_pair(2, COLOR_GREEN, COLOR_GREEN);
   init_pair(3, COLOR_WHITE, COLOR_WHITE);
   
   initGrid();
 
   while (true) {
     // print active grid
+    clear();
     printActiveGrid();
     refresh();
-    clear();
 
-    // update new grid
-    calculateStep();
+    if (!paused) {
+      // update new grid
+      calculateStep();
+    }
 
     // pause
     usleep(delay);
    
     // handle user input 
-/*
     int c = getch();
-    if (c == -1) {
-      puts("\nError! Cannot read keyboard input!");
-      break;
-    }
+
     switch(c) {
       case 43: // "+" - double delay 
         delay *= 2;
         break;
       case 45: // "-" - reduce delay by half
-        delay /= 2;
+        if (delay > 50000) {delay /= 2;}
         break;
+      case 113: // "q" - quit
+        endwin();
+        exit(EXIT_SUCCESS);
+        break;
+      case 110: // "n" - new grid
+        initGrid();
+        break;
+      case 112: // "p" - pause
+        paused = !paused;
+        break; 
       default:
     }
-*/    
   }
 
   endwin();
